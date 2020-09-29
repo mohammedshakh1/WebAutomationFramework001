@@ -21,6 +21,7 @@ public class HomePageTest extends BrowserDriver {
     public void searchBoxTest() {
         objOfHomePage.searchBox();
 
+
     }
 
     @Test

@@ -11,6 +11,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.testng.ITestContext;
 import org.testng.ITestResult;
 import org.testng.annotations.*;
@@ -22,6 +23,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -33,6 +36,16 @@ import java.util.concurrent.TimeUnit;
 public class BrowserDriver {
 
     public static WebDriver driver = null;
+    public static String browserName = System.getProperty("browserName", "chrome");
+    public static final String url = System.getProperty("url", "https://www.amazon.com/");
+    public static String os = System.getProperty("os", "mac");
+    public static String cloudPlatformName = System.getProperty("cloudPlatformName", "browserstack");
+    public static final String AUTOMATE_USERNAME = System.getProperty("AUTOMATE_USERNAME","mdsshakh1");
+    public static final String AUTOMATE_ACCESS_KEY = System.getProperty("AUTOMATE_ACCESS_KEY", "aryXn2hHhPapUN1aRezK");
+    //public static final String SAUCE_USERNAME = System.getProperty("SAUCE_USERNAME", "mohammedshakh1");
+    //public static final String SAUCE_ACCESS_KEY = System.getProperty("SAUCE_ACCESS_KEY", "89a48e19-fa6f-4b22-b161-a19ff087812f");
+
+    public static String platform = System.getProperty("platform", "local");
 
     /**
      * **************************************************
@@ -115,22 +128,126 @@ public class BrowserDriver {
      * */
 
     @BeforeMethod
-    public void setUp(){
+    public void setUp() throws MalformedURLException {
         /**
          *
          * Here we will setup the driver
          *
          * */
 
-        //System.setProperty("webdriver.chrome.driver", System.getProperty("user.dir")+"/driver/mac/chromedriver");
-        System.setProperty("webdriver.chrome.driver", "/Users/asif/QA-Automation/Auto-Project-Classwork/WebAutomationFramework001/utilities/drivers/mac/chromedriver");
+        if(platform.equals("local")){
+            if(browserName.equals("chrome")){
+                getChromeDriver();
+            }
+            else if(browserName.equals("fireFox")){
+                getFireFoxDriver();
+            }
+        }
+        else if(platform.equals("cloud")) {
+            if(cloudPlatformName.equals("browserstack")) {
+                getDriverForBrowserStack();
+            }
+            else if(cloudPlatformName.equals("saucelab")){
+                getDriverForSauceLab();
+            }
+        }
 
-        driver = new ChromeDriver();
         driver.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);
         driver.manage().timeouts().pageLoadTimeout(45, TimeUnit.SECONDS);
         // Open Browser with the Home Page
-        driver.get("https://www.amazon.com/");
+        driver.get(url);
 
+    }
+
+
+    public static WebDriver getChromeDriver(){
+
+        /**
+         * Provide power or additional capabilities to Chrome Driver
+         *
+         * */
+        /**
+         * Command Line Arguments
+         * https://peter.sh/experiments/chromium-command-line-switches/
+         * */
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+        options.addArguments("--start-maximized");
+
+        DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+        capabilities.setCapability(ChromeOptions.CAPABILITY, options);
+
+        if(os.equals("mac")) {
+            System.setProperty("webdriver.chrome.driver", "../utilities/drivers/mac/chromedriver");
+            driver = new ChromeDriver(options);
+        }
+        else if(os.equals("windows")){
+            System.setProperty("webdriver.chrome.driver", "../utilities/drivers/windows/chromedriver.exe");
+            driver = new ChromeDriver(options);
+        }
+
+        return driver;
+    }
+
+    public static WebDriver getFireFoxDriver(){
+
+        /**
+         * https://chercher.tech/java/chrome-firefox-options-selenium-webdriver
+         *
+         * */
+        FirefoxOptions options = new FirefoxOptions();
+        //options.setHeadless(true);
+        options.addArguments("--start-maximized");
+        options.addArguments("--ignore-certificate-errors");
+        options.addArguments("--private");
+        DesiredCapabilities capabilities = DesiredCapabilities.firefox();
+        capabilities.setCapability(FirefoxOptions.FIREFOX_OPTIONS, options);
+
+        if(os.equals("mac")) {
+            System.setProperty("webdriver.gecko.driver", "../utilities/drivers/mac/geckodriver");
+            driver = new FirefoxDriver(options);
+        }
+        else if(os.equals("windows")) {
+            System.setProperty("webdriver.gecko.driver", "../utilities/drivers/windows/geckodriver.exe");
+            driver = new FirefoxDriver(options);
+        }
+
+        return driver;
+    }
+
+    public WebDriver getDriverForBrowserStack() throws MalformedURLException {
+
+        DesiredCapabilities caps = new DesiredCapabilities();
+        caps.setCapability("os_version", "10");
+        caps.setCapability("resolution", "2048x1536");
+        caps.setCapability("browser", "Chrome");
+        caps.setCapability("browser_version", "latest-beta");
+        caps.setCapability("os", "Windows");
+
+        driver = new RemoteWebDriver(new URL("https://" + AUTOMATE_USERNAME + ":" + AUTOMATE_ACCESS_KEY + "@hub-cloud.browserstack.com/wd/hub"),caps );
+
+        return driver;
+    }
+
+    public WebDriver getDriverForSauceLab() throws MalformedURLException {
+
+        DesiredCapabilities caps = new DesiredCapabilities();
+        caps.setCapability("os_version", "10");
+        caps.setCapability("browser", "Chrome");
+        caps.setCapability("browser_version", "latest-beta");
+        caps.setCapability("os", "Windows");
+
+
+        //driver = new RemoteWebDriver(new URL("https://" + SAUCE_USERNAME + ":" + SAUCE_ACCESS_KEY + "@ondemand.us-west-1.saucelabs.com:443"), caps);
+
+        driver = new RemoteWebDriver(new URL("http://" + AUTOMATE_USERNAME + ":" + AUTOMATE_ACCESS_KEY + "@ondemand.saucelabs.com:80/wd/hub"), caps);
+
+        return driver;
+    }
+
+    @AfterMethod
+    public void cleanUp(){
+        driver.quit();
     }
 
 
